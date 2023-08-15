@@ -9,10 +9,11 @@
         </li>
         <li>
             <router-link v-if="logged" to="/login" @click="logout" >Logout</router-link>
-            <router-link v-else to="'/login'">Login</router-link>
+            <router-link v-else to="/login">Login</router-link>
         </li>
     </ul>
-    <CollapseIcon  v-if="size < 480" :options="options" />
+    <CollapseIcon  v-if="size < 480" :options="options"
+    @setFilter="(v) => setFilter(v)" @logout="logout" />
   </nav>
 </template>
 
@@ -20,6 +21,7 @@
 import { onMounted, ref } from 'vue';
 import CollapseIcon from './CollapseIcon.vue';
 import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
 
 export default {
     name: 'Navbar',
@@ -28,6 +30,8 @@ export default {
     },
     setup() {
         const store = useStore();
+        const router = useRouter();
+        const base_url = store.state.base_url;
         const options = ref([
             {name: 'All', done: null, active: true},
             {name: 'Pending', done: false, active: false},
@@ -39,10 +43,7 @@ export default {
             store.commit('setFilter', value);
 
             options.value.forEach((item) => {
-                console.log(item);
-                console.log(value);
                 if (item.done == value) {
-                    console.log("Enter");
                     item.active = true;
                 } else {
                     item.active = false;
@@ -66,7 +67,7 @@ export default {
         const token = localStorage.getItem('TODO_lst_token');
 
         const logout = () => {
-            const url = `http://localhost:3000/logout?token=${token}`;
+            const url = `${base_url}/logout?token=${token}`;
             fetch(url, {method: 'POST'})
             .then(resp => {
                 if (resp.status == 200) {
@@ -82,6 +83,9 @@ export default {
         }
 
         onMounted(() => {
+            if (!logged.value) {
+                router.replace('/login');
+            }
             onResize();
             updateSize();
         });

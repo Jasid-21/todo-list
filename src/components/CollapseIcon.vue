@@ -4,11 +4,11 @@
             <div class="icon"></div>
         </div>
         <ul class="collapse-list" :class="{displayed: display}">
-            <li v-for="(o, idx) of options" :key="idx">
+            <li v-for="(o, idx) of options" :key="idx" @click="setFilter(o.done)">
                 {{ o.name }}
             </li>
             <li>
-                <router-link to="/login">Logout</router-link>
+                <router-link to="/login" @click="logout">Logout</router-link>
             </li>
         </ul>
     </div>
@@ -20,10 +20,18 @@ import { ref } from '@vue/reactivity'
 export default {
     name: 'CollapseIcon',
     props: ['options'],
-    setup() {
+    setup(props, { emit }) {
         const display = ref(false);
+        
+        const setFilter = (v) => {
+            emit('setFilter', v);
+        }
 
-        return {display}
+        const logout = () => {
+            emit('logout');
+        }
+
+        return {display, setFilter, logout}
     }
 }
 </script>

@@ -21,11 +21,13 @@
 <script>
 import { ref } from '@vue/reactivity'
 import { useStore } from 'vuex';
+import Swal from 'sweetalert2';
+
 export default {
     name: 'taskCreator',
     setup() {
         const store = useStore();
-
+        const base_url = store.state.base_url;
         const formActive = ref(false);
         const name = ref('');
         const desc = ref('');
@@ -34,30 +36,35 @@ export default {
         const createTask = async () => {
             const token = localStorage.getItem('TODO_lst_token');
             const user_id = localStorage.getItem('TODO_lst_user_id');
-            const url = `http://127.0.0.1:3000/new_task?` + 
+            const url = `${base_url}/new_task?` + 
             `token=${token}&user_id=${user_id}&name=${name.value}&desc=${desc.value}&date=${date.value}`;
 
             const resp = await fetch(url, {method: 'POST'});
-            const status = resp.status;
+            const ok = resp.ok;
             const data = await resp.json();
 
-            if (status == 200) {
-                const task = {
-                    Id: data.task_id,
-                    Task_name: name.value,
-                    task_desc: desc.value,
-                    Max_date: date.value,
-                    User_id: user_id,
-                    Done: false
-                }
-
-                store.dispatch('newTask', task);
-
-                name.value = '';
-                desc.value = '';
-            } else {
-                alert(data.msg);
+            if (!ok) {
+                Swal.fire({
+                    title: 'App error',
+                    text: data.msg,
+                    icon: 'error',
+                });
+                return;
             }
+
+            const task = {
+                Id: data.task_id,
+                Task_name: name.value,
+                task_desc: desc.value,
+                Max_date: date.value,
+                User_id: user_id,
+                Done: false
+            }
+
+            store.dispatch('newTask', task);
+
+            name.value = '';
+            desc.value = '';
         }
 
         return {formActive, name, desc, date, createTask}

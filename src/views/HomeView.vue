@@ -30,20 +30,19 @@ export default {
   },
   setup() {
     const store = useStore();
+    const base_url = store.state.base_url;
     const data = computed(() => store.state.filtered);
 
     onMounted(async () => {
       const user_id = localStorage.getItem('TODO_lst_user_id');
       const token = localStorage.getItem('TODO_lst_token');
-      const url = `http://localhost:3000/home_info?user_id=${user_id}&token=${token}`
+      const url = `${base_url}/home_info?user_id=${user_id}&token=${token}`
 
       const resp = await fetch(url, {method: 'GET'});
       const status = resp.status;
 
       if (status == 200) {
         const tasks = await resp.json();
-
-        console.log(tasks);
         store.commit('setAll', tasks);  
       }
     });
@@ -56,6 +55,7 @@ export default {
 <style scoped>
 .home {
   width: 100vw;
+  max-width: 100%;
   height: 100vh;
 }
 .body_container {

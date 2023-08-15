@@ -1,17 +1,18 @@
 <template>
     <div class="task_card">
-        <button class="delete" @click.prevent="deleteTask">x</button>
-        <div class="upper">
-            <h3 class="name">{{ name }}</h3>
+        <div class="card-header">
+            <span class="max_date">{{ max_date != ""?max_date:'Not set' }}</span>
             <h4 class="done_state" :class="{done: done_state == true}">
                 {{ done_state?'Done':'Pending' }}
             </h4>
         </div>
+        <h3 class="name-title">{{ name }}</h3>
 
-        <div class="description">{{ desc != ''? desc:'...' }}</div>
-
-        <div class="lower">
-            <span class="max_date">{{ max_date != ""?max_date:'Not set' }}</span>
+        <div class="description">{{ desc != ''? desc:'No description available' }}</div>
+        <div class="btn-options">
+            <button class="delete-btn" @click.prevent="deleteTask">
+                x
+            </button>
             <button class="mark_done" v-if="!done_state" @click.prevent="markAsDone" >
                 Mark as done
             </button>
@@ -21,6 +22,7 @@
 
 <script>
 import { useStore } from 'vuex';
+import Swal from 'sweetalert2';
 
 export default {
     name: 'TaskCard',
@@ -29,48 +31,79 @@ export default {
         const id = props.task_id;
         const user_id = localStorage.getItem('TODO_lst_user_id');
         const token = localStorage.getItem('TODO_lst_token');
+
         const store = useStore();
+        const base_url = store.state.base_url;
 
         const deleteTask = async () => {
-            if (!confirm("Are you sure you want to delete this task?")) {
-                return;
-            }
+            const confirm = await Swal.fire({
+                title: 'Delete confirmation',
+                text: 'Are you sure you want to delete this task?',
+                icon: 'warning',
+                showCancelButton: true,
+                focusCancel: true,
+            });
+            if (!confirm.isConfirmed) return;
             
-            const url = `http://localhost:3000/delete_task?` + 
+            const url = `${base_url}/delete_task?` + 
             `user_id=${user_id}&token=${token}&task_id=${id}`;
 
             const resp = await fetch(url, {method: 'POST'});
-            const status = resp.status;
+            const ok = resp.ok;
 
-            if (status == 200) {
-                alert("Task deleted successfully!");
-
+            if (ok) {
+                Swal.fire({
+                    title: 'Delete confirmed',
+                    text: 'Task deleted successfully!',
+                    icon: 'success',
+                });
                 store.dispatch('deleteTask', id);
             } else {
                 const data = await resp.json();
+                if (!data.msg) return;
 
-                if (data.msg) {
-                    alert(data.msg);
-                }
+                Swal.fire({
+                    title: 'App error',
+                    text: data.msg,
+                    icon: 'error',
+                });
             }
         }
 
         const markAsDone = async () => {
-            const url = `http://localhost:3000/update_task_state?` + 
+            const confirm = await Swal.fire({
+                title: 'Done confirmation',
+                text: 'Have you done this task alredy?',
+                icon: 'question',
+                showCancelButton: true,
+                focusCancel: true,
+            });
+            if (!confirm.isConfirmed) return;
+
+            const url = `${base_url}/update_task_state?` + 
             `user_id=${user_id}&token=${token}&task_id=${id}`;
 
             const resp = await fetch(url, {method: 'POST'});
-            const status = resp.status;
+            const ok = resp.ok;
 
-            if (status == 200) {
-                store.dispatch('markAsDone', id);
-            } else {
+            if (!ok) {
                 const data = await resp.json();
+                if (!data.msg) return;
 
-                if (data.msg) {
-                    alert(data.msg);
-                }
+                Swal.fire({
+                    title: 'App error',
+                    text: data.msg,
+                    icon: 'error',
+                });
+                return;
             }
+
+            Swal.fire({
+                title: 'App message',
+                title: 'Status updated',
+                icon: 'success',
+            });
+            store.dispatch('markAsDone', id);
         }
 
         return {deleteTask, markAsDone}
@@ -79,27 +112,28 @@ export default {
 </script>
 
 <style scoped>
-.delete {
-    top: 2px;
-    right: 2px;
-    width: 18px;
-    height: 18px;
-
-    background-color: rgb(122, 122, 122);
-    border: 1px solid rgb(85, 85, 85);
-    border-radius: 5px;
-
-    color: white;
-    font-weight: 700;
-
-    position: absolute;
-}
-.lower {
+.card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
+.btn-options {
+    height: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-content: center;
+}
+.delete-btn {
+    color: red;
+    border: 2px solid red;
+    border-radius: 10px;
+    font-size: 25px;
+    font-weight: 500;
 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 .mark_done {
     border-radius: 5px;
     background-color: rgba(0, 0, 90, 0);
@@ -116,8 +150,6 @@ export default {
 }
 
 .max_date {
-    margin-left: auto;
-    margin-right: auto;
     font-size: 14px;
     font-weight: 700;
 }
@@ -125,7 +157,10 @@ export default {
     padding: 10px;
     font-style: oblique;
     color: rgb(65, 65, 65);
+
     margin-bottom: 10px;
+    border: 1px dashed gray;
+    border-radius: 5px;
 
     overflow: auto;
 }
@@ -160,22 +195,14 @@ export default {
     margin-right: 10px;
     text-align: justify;
 
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-
-    position: relative;
+    display: grid;
+    grid-template-rows: 20px 35px calc(100% - 80px) 25px;
 }
 
-.upper {
-    padding: 0px 10px;
-
-    display: flex;
-    justify-content: space-between;
-}
-
-.name {
+.name-title {
+    text-align: center;
     margin: 0px;
+    align-self: flex-end;
 }
 
 .done_state {

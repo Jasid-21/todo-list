@@ -4,7 +4,8 @@ export default createStore({
   state: {
     all: [],  //{name, desc, max_date, done}
     filtered: [],
-    doneFilter: null
+    doneFilter: null,
+    base_url: '',
   },
   mutations: {
     setAll: (state, payload) => {
